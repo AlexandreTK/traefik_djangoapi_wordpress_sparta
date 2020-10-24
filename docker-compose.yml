@@ -2,18 +2,51 @@ version: "3.8"
    
 services:
   db:
-    image: postgres
+    image: postgres:12.0-alpine
+    restart: always
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgresdb_data:/var/lib/postgresql/data/
+    networks:
+      - nginx_network
+
 
   web:
-    build: .
-    command: python sparta_accounts_manager/manage.py runserver 0.0.0.0:8000
+    build: sparta_accounts_manager
+    command: gunicorn sparta_accounts_manager.wsgi:application --bind 0.0.0.0:8000
+    restart: always
     volumes:
-      - .:/sparta_accounts_manager
-    ports:
-      - "8000:8000"
+      - ./sparta_accounts_manager:/sparta_accounts_manager
+      - static_volume:/sparta_accounts_manager/static
+      - media_volume:/sparta_accounts_manager/media
     depends_on:
       - db
+    networks:
+      - nginx_network
+
+  nginx:
+    image: nginx
+    restart: always
+    ports:
+      - 80:80
+    volumes:
+      - ./config/nginx/conf.d:/etc/nginx/conf.d
+      - static_volume:/opt/services/web/static
+      - media_volume:/opt/services/web/media
+    depends_on: 
+      - web
+    networks:
+      - nginx_network
+
+networks:
+  nginx_network:
+    driver: bridge
+
+
+volumes:
+  postgresdb_data:
+  static_volume:
+  media_volume:

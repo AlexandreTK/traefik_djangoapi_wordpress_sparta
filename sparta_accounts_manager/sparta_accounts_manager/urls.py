@@ -18,9 +18,21 @@ from django.urls import include, path
 
 from validation_app.views import validation, homepage
 
-
 urlpatterns = [
     path('', homepage, name='homepage'),
     path('validation/<str:account_number>', validation, name='validation'),
     path('admin/', admin.site.urls),
 ]
+
+
+
+################
+# EVITAR DE FAZER ISSO QUE EU FIZ ABAIXO, USAR NGINX!!! 
+# FIZ SOMENTE PELA SIMPLICIDADE
+# from django.conf import settings
+# from django.conf.urls.static import static
+# urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+urlpatterns += staticfiles_urlpatterns()
+################
