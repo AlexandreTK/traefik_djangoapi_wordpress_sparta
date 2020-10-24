@@ -1,0 +1,10 @@
+- Rodar aplicacao
+> docker-compose up
+- Parar aplicacao
+> docker-compose down
+- Rodar comandos no container da aplicacao:
+> docker-compose run web bash
+
+OUTROS:
+- Migracao banco de dados:
+> python manage.py makemigrations (rodar dentro do container)
