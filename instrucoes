@@ -1,10 +1,15 @@
-- Rodar aplicacao
-> docker-compose up
-- Parar aplicacao
-> docker-compose down
-- Rodar comandos no container da aplicacao:
-> docker-compose run web bash
+**** INSTALAR
+1) Instalar o docker e docker-compose no servidor
+2) Pausar a aplicação Wordpress
+3) Configurar o worpress para rodar na porta 8080
+4) Executar o comando 'docker-compose run web bash'
+    Assim entramos no container da aplicação, agora executar
+    > python manage.py migrate
+    > python manage.py collectstatic
+    > python manage.py createsuperuser  (APÓS RODAR ESSE COMANDO SERÁ CRIADA A CONTA DE ADMIN, COLOQUE NELE SUAS INFORMAÇÕES)
 
-OUTROS:
-- Migracao banco de dados:
-> python manage.py makemigrations (rodar dentro do container)
+**** EXECUTAR
+5) Executar o comando 'docker-compose up -d' nessa pasta onde você está.
+
+**** PARAR EXECUÇÃO
+6) Executar o comando 'docker-compose down' nessa pasta onde você está.
