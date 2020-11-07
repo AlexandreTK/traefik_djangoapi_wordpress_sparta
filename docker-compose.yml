@@ -63,8 +63,8 @@ services:
       - "traefik.http.routers.wordpresscp-secured.entrypoints=web-secure"
       - "traefik.http.routers.wordpresscp-secured.tls=true"
 
-      # <MUDAR> DESCOMENTAR LINHA ABAIXO EM PRODUCAO
-      # - "traefik.http.routers.web-secured.tls.certresolver=myhttpchallenge"
+
+      - "traefik.http.routers.wordpresscp-secured.tls.certresolver=myhttpchallenge"
 
   db_wordpress:
     # this is the database used by Wordpress
@@ -121,7 +121,7 @@ services:
       - "traefik.http.routers.web.tls=true"
 
       # <MUDAR> DESCOMENTAR LINHA ABAIXO EM PRODUCAO
-      # - "traefik.http.routers.web-secured.tls.certresolver=myhttpchallenge"
+      # - "traefik.http.routers.web.tls.certresolver=myhttpchallenge"
 
 
   nginx:
