@@ -63,6 +63,9 @@ services:
       - "traefik.http.routers.wordpresscp-secured.entrypoints=web-secure"
       - "traefik.http.routers.wordpresscp-secured.tls=true"
 
+      # <MUDAR> DESCOMENTAR LINHA ABAIXO EM PRODUCAO
+      # - "traefik.http.routers.web-secured.tls.certresolver=myhttpchallenge"
+
   db_wordpress:
     # this is the database used by Wordpress
     image: mysql:5.7
