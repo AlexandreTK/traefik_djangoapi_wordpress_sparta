@@ -20,17 +20,16 @@ services:
       # Uncomment this to get a fake certificate when testing
       #- "--certificatesresolvers.myhttpchallenge.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
       # Settle letsencrypt as the certificate provider
-      - "--certificatesresolvers.myhttpchallenge.acme.email=<MUDAR><MEU_EMAIL>@gmail.com"
+      - "--certificatesresolvers.myhttpchallenge.acme.email=f.fabiocavalcante@gmail.com"
       - "--certificatesresolvers.myhttpchallenge.acme.storage=/letsencrypt/acme.json"
 
-      # <MUDAR> DESCOMENTAR LINHA ABAIXO EM PRODUCAO
-      # - "traefik.http.routers.wordpresscp-secured.tls.certresolver=myhttpchallenge"
     ports:
       - "80:80"
       - "443:443"
       - "8080:8080"
     networks:
       - "backend"
+      - "traefik"
     volumes:
       - "./traefik/letsencrypt:/letsencrypt"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
@@ -64,9 +63,6 @@ services:
       - "traefik.http.routers.wordpresscp-secured.entrypoints=web-secure"
       - "traefik.http.routers.wordpresscp-secured.tls=true"
 
-      # <MUDAR> DESCOMENTAR LINHA ABAIXO EM PRODUCAO
-      # - "traefik.http.routers.wordpresscp-secured.tls.certresolver=myhttpchallenge"
-
   db_wordpress:
     # this is the database used by Wordpress
     image: mysql:5.7
@@ -97,8 +93,8 @@ services:
       - db
     networks:
       - backend
-    ports:
-      - 8000:8000
+    # ports:
+    #   - 8000:8000
 
     labels:
       - "traefik.enable=true"
@@ -107,7 +103,8 @@ services:
       - "traefik.http.services.web.loadbalancer.server.port=8000"
 
       - "traefik.http.routers.web_http.entrypoints=web"
-      - "traefik.http.routers.web_http.rule=( Host(`localhost`) && ( PathPrefix(`/admin`) || PathPrefix(`/validation`) ) )"
+      # - "traefik.http.routers.web_http.rule=( Host(`localhost`) && ( PathPrefix(`/admin`) || PathPrefix(`/validation`) ) )"
+      - "traefik.http.routers.web_http.rule=Host(`api.localhost`)"
       # REDIRECT TO HTTPS
       # - "traefik.http.routers.web_http.service=web"
       - "traefik.http.routers.web_http.middlewares=redirect-to-https"
@@ -115,7 +112,8 @@ services:
 
 
       - "traefik.http.routers.web.entrypoints=web-secure"
-      - "traefik.http.routers.web.rule=( Host(`localhost`) && ( PathPrefix(`/admin`) || PathPrefix(`/validation`) ) )"
+      # - "traefik.http.routers.web.rule=( Host(`localhost`) && ( PathPrefix(`/admin`) || PathPrefix(`/validation`) ) )"
+      - "traefik.http.routers.web.rule=Host(`api.localhost`)"
       - "traefik.http.routers.web.service=web"
       - "traefik.http.routers.web.tls=true"
 
@@ -144,19 +142,19 @@ services:
       - "traefik.http.services.nginx.loadbalancer.server.port=80"
 
       - "traefik.http.routers.nginx_http.entrypoints=web"
-      - "traefik.http.routers.nginx_http.rule=( Host(`localhost`) && ( PathPrefix(`/static`) || PathPrefix(`/media`) ) )"
+      # - "traefik.http.routers.nginx_http.rule=( Host(`localhost`) && ( PathPrefix(`/static`) || PathPrefix(`/media`) ) )"
+      - "traefik.http.routers.nginx_http.rule=( Host(`api.localhost`) && ( PathPrefix(`/static`) || PathPrefix(`/media`) ) )"
       # REDIRECT TO HTTPS
       - "traefik.http.routers.nginx_http.service=nginx"
       # - "traefik.http.routers.nginx_http.middlewares=redirect-to-https"
       # - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
       - "traefik.http.routers.nginx.entrypoints=web-secure"
-      - "traefik.http.routers.nginx.rule=( Host(`localhost`) && ( PathPrefix(`/static`) || PathPrefix(`/media`) ) )"
+      # - "traefik.http.routers.nginx.rule=( Host(`api.localhost`) && ( PathPrefix(`/static`) || PathPrefix(`/media`) ) )"
+      - "traefik.http.routers.nginx.rule=( Host(`api.localhost`) && ( PathPrefix(`/static`) || PathPrefix(`/media`) ) )"
       - "traefik.http.routers.nginx.service=nginx"
       - "traefik.http.routers.nginx.tls=true"
 
-      # <MUDAR> DESCOMENTAR LINHA ABAIXO EM PRODUCAO
-      # - "traefik.http.routers.nginx-secured.tls.certresolver=myhttpchallenge"
 
 
   db:
@@ -183,6 +181,7 @@ volumes:
 
 networks:
     backend:
-      # external: false
+      external: false
+    traefik:
 
 
