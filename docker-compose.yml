@@ -1,22 +1,93 @@
 version: "3.8"
    
+
 services:
-  db:
-    image: postgres:12.0-alpine
+
+  traefik:
+    image: "traefik:v2.2"
+    container_name: "traefik"
+    command:
+      # Only for development environment
+      # <MUDAR> Comentar linha abaixo para producao
+      # - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web-secure.address=:443"
+      - "--certificatesresolvers.myhttpchallenge.acme.httpchallenge=true"
+      - "--certificatesresolvers.myhttpchallenge.acme.httpchallenge.entrypoint=web"
+      # Uncomment this to get a fake certificate when testing
+      #- "--certificatesresolvers.myhttpchallenge.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      # Settle letsencrypt as the certificate provider
+      - "--certificatesresolvers.myhttpchallenge.acme.email=<MUDAR><MEU_EMAIL>@gmail.com"
+      - "--certificatesresolvers.myhttpchallenge.acme.storage=/letsencrypt/acme.json"
+
+      # <MUDAR> DESCOMENTAR LINHA ABAIXO EM PRODUCAO
+      # - "traefik.http.routers.wordpresscp-secured.tls.certresolver=myhttpchallenge"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    networks:
+      - "backend"
+    volumes:
+      - "./traefik/letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+
+
+  wordpress:
+    image: "wordpress"
     restart: always
     environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      # Connect WordPrerss to the database
+      WORDPRESS_DB_HOST: db_wordpress:3306
+      WORDPRESS_DB_USER: wordpressuser
+      WORDPRESS_DB_PASSWORD: spartawpresspw
+      WORDPRESS_DB_NAME: wordpressdb
     volumes:
-      - postgresdb_data:/var/lib/postgresql/data/
+      # save the content of WordPress an enable local modifications
+      - ./wordpress/data:/var/www/html
     networks:
-      - nginx_network
+      - backend
+    depends_on:
+        - db_wordpress
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=backend"
+      - "traefik.http.routers.wordpresscp.rule=Host(`localhost`)"
+      - "traefik.http.routers.wordpresscp.entrypoints=web"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.wordpresscp.middlewares=redirect-to-https"
+      - "traefik.http.routers.wordpresscp-secured.rule=Host(`localhost`)"
+      - "traefik.http.routers.wordpresscp-secured.entrypoints=web-secure"
+      - "traefik.http.routers.wordpresscp-secured.tls=true"
+
+      # <MUDAR> DESCOMENTAR LINHA ABAIXO EM PRODUCAO
+      # - "traefik.http.routers.wordpresscp-secured.tls.certresolver=myhttpchallenge"
+
+  db_wordpress:
+    # this is the database used by Wordpress
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_DATABASE: wordpressdb
+      MYSQL_USER: wordpressuser
+      MYSQL_PASSWORD: spartawpresspw
+      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+    volumes:
+      - ./db_wordpress:/var/lib/mysql
+    networks:
+      - backend
 
 
+
+
+  ############ API ############
   web:
     build: sparta_accounts_manager
-    command: gunicorn sparta_accounts_manager.wsgi:application --bind 0.0.0.0:8000
+    command: gunicorn sparta_accounts_manager.wsgi:application  -w 2 --bind 0.0.0.0:8000
     restart: always
     volumes:
       - ./sparta_accounts_manager:/sparta_accounts_manager
@@ -25,28 +96,93 @@ services:
     depends_on:
       - db
     networks:
-      - nginx_network
+      - backend
+    ports:
+      - 8000:8000
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=backend"
+
+      - "traefik.http.services.web.loadbalancer.server.port=8000"
+
+      - "traefik.http.routers.web_http.entrypoints=web"
+      - "traefik.http.routers.web_http.rule=( Host(`localhost`) && ( PathPrefix(`/admin`) || PathPrefix(`/validation`) ) )"
+      # REDIRECT TO HTTPS
+      # - "traefik.http.routers.web_http.service=web"
+      - "traefik.http.routers.web_http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+
+      - "traefik.http.routers.web.entrypoints=web-secure"
+      - "traefik.http.routers.web.rule=( Host(`localhost`) && ( PathPrefix(`/admin`) || PathPrefix(`/validation`) ) )"
+      - "traefik.http.routers.web.service=web"
+      - "traefik.http.routers.web.tls=true"
+
+      # <MUDAR> DESCOMENTAR LINHA ABAIXO EM PRODUCAO
+      # - "traefik.http.routers.web-secured.tls.certresolver=myhttpchallenge"
+
 
   nginx:
     image: nginx
     restart: always
-    ports:
-      - 80:80
+    # ports:
+    #   - 80:80
     volumes:
-      - ./config/nginx/conf.d:/etc/nginx/conf.d
+      - ./traefik/nginx/conf.d:/etc/nginx/conf.d
       - static_volume:/opt/services/web/static
       - media_volume:/opt/services/web/media
     depends_on: 
       - web
     networks:
-      - nginx_network
+      - backend
+    labels:
+      # The labels are usefull for Traefik only
+      - "traefik.enable=true"
+      - "traefik.docker.network=backend"
 
-networks:
-  nginx_network:
-    driver: bridge
+      - "traefik.http.services.nginx.loadbalancer.server.port=80"
+
+      - "traefik.http.routers.nginx_http.entrypoints=web"
+      - "traefik.http.routers.nginx_http.rule=( Host(`localhost`) && ( PathPrefix(`/static`) || PathPrefix(`/media`) ) )"
+      # REDIRECT TO HTTPS
+      - "traefik.http.routers.nginx_http.service=nginx"
+      # - "traefik.http.routers.nginx_http.middlewares=redirect-to-https"
+      # - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+      - "traefik.http.routers.nginx.entrypoints=web-secure"
+      - "traefik.http.routers.nginx.rule=( Host(`localhost`) && ( PathPrefix(`/static`) || PathPrefix(`/media`) ) )"
+      - "traefik.http.routers.nginx.service=nginx"
+      - "traefik.http.routers.nginx.tls=true"
+
+      # <MUDAR> DESCOMENTAR LINHA ABAIXO EM PRODUCAO
+      # - "traefik.http.routers.nginx-secured.tls.certresolver=myhttpchallenge"
+
+
+  db:
+    image: postgres:12.0-alpine
+    restart: always
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - ./db_api:/var/lib/postgresql/data/
+    networks:
+      - backend
+  ############ API ############
+
+
+
 
 
 volumes:
-  postgresdb_data:
   static_volume:
   media_volume:
+
+
+networks:
+    backend:
+      # external: false
+
+

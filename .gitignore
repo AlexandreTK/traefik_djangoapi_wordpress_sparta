@@ -1,3 +1,6 @@
 *.DS_Store
 *.pyc
 __pycache__/
+db_api/
+db_wordpress/
+wordpress/
