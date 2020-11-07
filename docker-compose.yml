@@ -57,14 +57,16 @@ services:
       - "traefik.docker.network=backend"
       - "traefik.http.routers.wordpresscp.rule=Host(`localhost`)"
       - "traefik.http.routers.wordpresscp.entrypoints=web"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.routers.wordpresscp.middlewares=redirect-to-https"
+      # REDIRECT TO HTTPS
+      # - "traefik.http.routers.wordpresscp.middlewares=redirect-to-https"
+      # - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
       - "traefik.http.routers.wordpresscp-secured.rule=Host(`localhost`)"
       - "traefik.http.routers.wordpresscp-secured.entrypoints=web-secure"
       - "traefik.http.routers.wordpresscp-secured.tls=true"
 
-
-      - "traefik.http.routers.wordpresscp-secured.tls.certresolver=myhttpchallenge"
+      # <MUDAR> DESCOMENTAR LINHA ABAIXO EM PRODUCAO
+      # - "traefik.http.routers.wordpresscp-secured.tls.certresolver=myhttpchallenge"
 
   db_wordpress:
     # this is the database used by Wordpress
@@ -109,9 +111,9 @@ services:
       # - "traefik.http.routers.web_http.rule=( Host(`localhost`) && ( PathPrefix(`/admin`) || PathPrefix(`/validation`) ) )"
       - "traefik.http.routers.web_http.rule=Host(`api.localhost`)"
       # REDIRECT TO HTTPS
-      # - "traefik.http.routers.web_http.service=web"
-      - "traefik.http.routers.web_http.middlewares=redirect-to-https"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.web_http.service=web"
+      # - "traefik.http.routers.web_http.middlewares=redirect-to-https"
+      # - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
 
       - "traefik.http.routers.web.entrypoints=web-secure"
